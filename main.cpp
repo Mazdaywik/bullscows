@@ -187,40 +187,6 @@ struct Answer {
   }
 };
 
-class AnswerSource {
-public:
-  virtual ~AnswerSource() {}
-  virtual Answer nextAnswer(Number num) = 0;
-};
-
-class UserAnswerSource: public AnswerSource {
-public:
-  virtual Answer nextAnswer(Number num) {
-    char buffer[NUMLEN + 1];
-    printf("number is %s\n", num.str(buffer));
-    printf("type oxes, cows >");
-    int oxes, cows;
-    scanf("%d %d", &oxes, &cows);
-    return Answer(num, Match(oxes, cows));
-  }
-};
-
-class BotAnswerSource: public AnswerSource {
-public:
-  BotAnswerSource(Number known)
-    :m_known(known)
-  {
-    /* пусто */
-  }
-
-  virtual Answer nextAnswer(Number num) {
-    return Answer(num, Match(m_known, num));
-  }
-
-private:
-  Number m_known;
-};
-
 typedef std::map<Match, Numbers> Classes;
 typedef std::map<Match, int> ClassCounts;
 

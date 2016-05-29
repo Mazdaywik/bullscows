@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <functional>
 #include <map>
 #include <math.h>
 #include <stdio.h>
@@ -10,6 +12,9 @@ class BadNumberError {};
 class BadIndexError {};
 
 const size_t NUMLEN = 4;
+
+class Number;
+typedef std::vector<Number> Numbers;
 
 class Number {
 public:
@@ -44,8 +49,8 @@ public:
     }
   }
 
-  static const std::vector<Number>& all_numbers() {
-    static std::vector<Number> s_all_numbers;
+  static const Numbers& all_numbers() {
+    static Numbers s_all_numbers;
 
     if (s_all_numbers.empty()) {
       const unsigned int total = div();
@@ -59,7 +64,7 @@ public:
         }
       }
 
-      std::vector<Number>(s_all_numbers).swap(s_all_numbers);
+      Numbers(s_all_numbers).swap(s_all_numbers);
     }
 
     return s_all_numbers;
@@ -145,6 +150,10 @@ public:
     return (oxes < rhs.oxes) || ((oxes == rhs.oxes) && (cows < rhs.cows));
   }
 
+  bool operator==(const Match& rhs) const {
+    return (oxes == rhs.oxes) && (cows == rhs.cows);
+  }
+
   const char *str(char buffer[]) const {
     sprintf(buffer, "%dA%dB", oxes, cows);
     return buffer;
@@ -168,6 +177,13 @@ struct Answer {
     char num_buffer[NUMLEN + 1];
     char match_buffer[10];
     printf("%s<->%s", number.str(num_buffer), match.str(match_buffer));
+  }
+
+  typedef Number argument_type;
+  typedef bool result_type;
+
+  result_type operator()(argument_type num) const {
+    return Match(this->number, num) == this->match;
   }
 };
 
@@ -205,32 +221,134 @@ private:
   Number m_known;
 };
 
-//
+typedef std::map<Match, Numbers> Classes;
+typedef std::map<Match, int> ClassCounts;
+
+double log2(double x) {
+  return log(x) / log(2);
+}
+
+class SilentCalcInfo {
+public:
+  void add_match(Match, Number) { /* пусто */ }
+  void print(Number) { /* пусто */ }
+  void print(Match, int) { /* пусто */ }
+  void print_info(double) { /* пусто */ }
+};
+
+class PrintableCalcInfo {
+public:
+  void add_match(Match m, Number n) {
+    if (m_classes[m].size() < 10) {
+      m_classes[m].push_back(n);
+    }
+  }
+
+  void print(Number n) {
+    char num_buf[NUMLEN + 1];
+    printf("Number: %s\n", n.str(num_buf));
+  }
+
+  void print(Match m, int count) {
+    char match_buf[10];
+    printf("%s | %4d | ", m.str(match_buf), count);
+    const Numbers& class_ = m_classes[m];
+    for (size_t i = 0; i < class_.size(); ++i) {
+      char num_buf[NUMLEN + 1];
+      printf("%s%s", (i == 0 ? "" : ", "), class_[i].str(num_buf));
+    }
+    puts(class_.size() < (size_t) count ? "..." : "");
+  }
+
+  void print_info(double info) {
+    printf("Information: %.2f bits\n", info);
+  }
+
+private:
+  Classes m_classes;
+};
+
+template <typename CalcInfoPrinter>
+double calc_info(Number sample, const Numbers& candidates) {
+  ClassCounts class_counts;
+  CalcInfoPrinter pr;
+
+  for (
+    Numbers::const_iterator p = candidates.begin();
+    p != candidates.end();
+    ++p
+  ) {
+    Match match(sample, *p);
+    pr.add_match(match, *p);
+    ++class_counts[match];
+  }
+
+  pr.print(sample);
+  double info = 0;
+  const double total = candidates.size();
+  for (
+    ClassCounts::const_iterator p = class_counts.begin();
+    p != class_counts.end();
+    ++p
+  ) {
+    pr.print(p->first, p->second);
+    info -= (p->second / total) * log2(p->second / total);
+  }
+  pr.print_info(info);
+
+  return info;
+}
+
+Number max_info_number(const Numbers& candidates, const Numbers& tries) {
+  Number result = candidates.at(0);
+  if (candidates.size() > 1) {
+    double max_info = calc_info<SilentCalcInfo>(result, candidates);
+
+    for (
+      Numbers::const_iterator p = tries.begin();
+      p != tries.end();
+      ++p
+    ) {
+      double next_info = calc_info<SilentCalcInfo>(*p, candidates);
+      if (max_info < next_info) {
+        max_info = next_info;
+        result = *p;
+      }
+    }
+  }
+  calc_info<PrintableCalcInfo>(result, candidates);
+  return result;
+}
+
+void get_next_number(const Numbers& candidates, const Numbers& tries) {
+    printf("numbers = %u\n", (unsigned) candidates.size());
+    Number max_info = max_info_number(candidates, tries);
+    char num_buf[NUMLEN + 1];
+    printf("max info number = %s\n", max_info.str(num_buf));
+}
+
+void sieve(Numbers& candidates, Answer ans) {
+    candidates.erase(
+      std::remove_if(candidates.begin(), candidates.end(), std::not1(ans)),
+      candidates.end()
+    );
+    puts("");
+}
 
 int main() {
   try {
-    typedef std::vector<Number> Numbers;
-    typedef std::map<Match, Numbers> Classes;
-    Classes classes;
-    Number sample(1234);
-    unsigned int total = 0;
-    for (
-      Numbers::const_iterator p = Number::all_numbers().begin();
-      p != Number::all_numbers().end();
-      ++p
-    ) {
-      classes[Match(sample, *p)].push_back(*p);
-      ++total;
-    }
+    Numbers candidates = Number::all_numbers();
+    Numbers tries = Number::all_numbers();
 
-    double info = 0;
-    for (Classes::const_iterator p = classes.begin(); p != classes.end(); ++p) {
-      char match_buf[10];
-      double count = p->second.size();
-      info -= count / total * log(count / total) / log(2);
-      printf("class %s <--> %f\n", p->first.str(match_buf), count);
-    }
-    printf("info = %f\n", info);
+    calc_info<PrintableCalcInfo>(Number("1234"), candidates);
+    sieve(candidates, Answer(Number("1234"), Match(0, 1)));
+    get_next_number(candidates, tries);
+    sieve(candidates, Answer(Number("0156"), Match(1, 1)));
+    get_next_number(candidates, tries);
+    sieve(candidates, Answer(Number("0178"), Match(0, 1)));
+    get_next_number(candidates, tries);
+    sieve(candidates, Answer(Number("2586"), Match(1, 2)));
+    get_next_number(candidates, tries);
   } catch (BadNumberError) {
     printf("uncatched BadNumberError\n");
   } catch (BadIndexError) {

@@ -210,7 +210,7 @@ int main() {
     Numbers tries = Number::all_numbers();
 
     while (! do_exit) {
-      printf("\nDefault number %s:\n", next.str(num_buf));
+      printf("\nDefault number %s, type command:\n", next.str(num_buf));
 
       const char MAXLINE = 80;
       char line[MAXLINE+1] = { '\0' };

@@ -175,11 +175,7 @@ Number max_info_number(const Numbers& candidates, const Numbers& tries) {
         }
       }
 
-      if (v != &tries) {
-        v = &tries;
-      } else {
-        v = 0;
-      }
+      v = (v == &tries ? 0 : &tries);
     }
   }
   calc_info<PrintableCalcInfo>(result, candidates);

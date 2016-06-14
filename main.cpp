@@ -270,15 +270,24 @@ Number max_info_number(const Numbers& candidates, const Numbers& tries) {
   if (candidates.size() > 1) {
     double max_info = calc_info<SilentCalcInfo>(result, candidates);
 
-    for (
-      Numbers::const_iterator p = tries.begin();
-      p != tries.end();
-      ++p
-    ) {
-      double next_info = calc_info<SilentCalcInfo>(*p, candidates);
-      if (max_info < next_info) {
-        max_info = next_info;
-        result = *p;
+    const Numbers *v = &tries;
+    if (candidates.size() < tries.size()) {
+      v = &candidates;
+    }
+
+    while (v != 0) {
+      for (Numbers::const_iterator p = v->begin(); p != v->end(); ++p) {
+        double next_info = calc_info<SilentCalcInfo>(*p, candidates);
+        if (max_info < next_info) {
+          max_info = next_info;
+          result = *p;
+        }
+      }
+
+      if (v != &tries) {
+        v = &tries;
+      } else {
+        v = 0;
       }
     }
   }

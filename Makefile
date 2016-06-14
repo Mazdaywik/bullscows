@@ -1,4 +1,6 @@
 all: bullscows
 
-bullscows: main.cpp
+bullscows: main.o
 	g++ -o $@ -Wall -Wextra -Werror -g $+
+
+main.o: number.h

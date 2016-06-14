@@ -1,4 +1,4 @@
-all: oxcows
+all: bullscows
 
-oxcows: main.cpp
+bullscows: main.cpp
 	g++ -o $@ -Wall -Wextra -Werror -g $+

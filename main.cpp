@@ -121,10 +121,10 @@ private:
 class Match {
 public:
   Match(Number x, Number y)
-    : oxes(0), cows(0)
+    : bulls(0), cows(0)
   {
     for (size_t i = 0; i < NUMLEN; ++i) {
-      oxes += (x[i] == y[i]);
+      bulls += (x[i] == y[i]);
     }
 
     for (size_t i = 0; i < NUMLEN; ++i) {
@@ -134,33 +134,33 @@ public:
     }
   }
 
-  Match(int oxes, int cows)
-    : oxes(oxes), cows(cows)
+  Match(int bulls, int cows)
+    : bulls(bulls), cows(cows)
   {
     /* пусто */
   }
 
   Match()
-    : oxes(0), cows(0)
+    : bulls(0), cows(0)
   {
     /* пусто */
   }
 
   bool operator<(const Match& rhs) const {
-    return (oxes < rhs.oxes) || ((oxes == rhs.oxes) && (cows < rhs.cows));
+    return (bulls < rhs.bulls) || ((bulls == rhs.bulls) && (cows < rhs.cows));
   }
 
   bool operator==(const Match& rhs) const {
-    return (oxes == rhs.oxes) && (cows == rhs.cows);
+    return (bulls == rhs.bulls) && (cows == rhs.cows);
   }
 
   const char *str(char buffer[]) const {
-    sprintf(buffer, "%dA%dB", oxes, cows);
+    sprintf(buffer, "%dA%dB", bulls, cows);
     return buffer;
   }
 
 private:
-  int oxes, cows;
+  int bulls, cows;
 };
 
 struct Answer {
@@ -327,7 +327,7 @@ int main() {
 
       const char MAXLINE = 80;
       char line[MAXLINE+1] = { '\0' };
-      int oxes = 0, cows = 0, next_num_num;
+      int bulls = 0, cows = 0, next_num_num;
 
       bool perform_sieve = false;
 
@@ -342,7 +342,7 @@ int main() {
         }
       } else if (strncmp(line, "cheat", 5) == 0) {
         next = get_next_number(candidates, tries);
-      } else if (sscanf(line, "%d %dA%dB", &next_num_num, &oxes, &cows) == 3) {
+      } else if (sscanf(line, "%d %dA%dB", &next_num_num, &bulls, &cows) == 3) {
         try {
           next = Number(next_num_num);
           calc_info<PrintableCalcInfo>(next, candidates);
@@ -350,7 +350,7 @@ int main() {
         } catch (BadNumberError) {
           printf("Invalid number: digits is repeated\n");
         }
-      } else if (sscanf(line, "%dA%dB", &oxes, &cows) == 2) {
+      } else if (sscanf(line, "%dA%dB", &bulls, &cows) == 2) {
         perform_sieve = true;
       } else if (strncmp(line, "reset", 5) == 0) {
         candidates = Number::all_numbers();
@@ -371,7 +371,7 @@ int main() {
 
       if (perform_sieve) {
         Numbers backup = candidates;
-        sieve(candidates, Answer(next, Match(oxes, cows)));
+        sieve(candidates, Answer(next, Match(bulls, cows)));
         switch (candidates.size()) {
           case 0:
             printf("WARNING: empty candidates list, unroll sieve\n");

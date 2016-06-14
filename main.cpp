@@ -379,8 +379,12 @@ int main() {
             break;
 
           case 1:
-            printf("Only one number");
-            next = candidates[0];
+            printf(
+              "Thinked number is %s, reset the game.\n",
+              candidates[0].str(num_buf)
+            );
+            candidates = Number::all_numbers();
+            next = Number();
             break;
 
           default:

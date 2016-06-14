@@ -295,35 +295,101 @@ Number max_info_number(const Numbers& candidates, const Numbers& tries) {
   return result;
 }
 
-void get_next_number(const Numbers& candidates, const Numbers& tries) {
+Number get_next_number(const Numbers& candidates, const Numbers& tries) {
     printf("numbers = %u\n", (unsigned) candidates.size());
-    Number max_info = max_info_number(candidates, tries);
-    char num_buf[NUMLEN + 1];
-    printf("max info number = %s\n", max_info.str(num_buf));
+    return max_info_number(candidates, tries);
 }
 
 void sieve(Numbers& candidates, Answer ans) {
-    candidates.erase(
-      std::remove_if(candidates.begin(), candidates.end(), std::not1(ans)),
-      candidates.end()
-    );
-    puts("");
+  size_t before = candidates.size();
+  candidates.erase(
+    std::remove_if(candidates.begin(), candidates.end(), std::not1(ans)),
+    candidates.end()
+  );
+  double after = candidates.size();
+  printf(
+    "before %lu, after = %.0f, ratio = %.2f, info = %.2f bits\n",
+    (unsigned long) before, after, before/after, log2(before/after)
+  );
 }
 
 int main() {
   try {
+    bool do_exit = false;
+
+    Number next = Number();
+    char num_buf[NUMLEN + 1] = { '\0' };
     Numbers candidates = Number::all_numbers();
     Numbers tries = Number::all_numbers();
 
-    calc_info<PrintableCalcInfo>(Number("1234"), candidates);
-    sieve(candidates, Answer(Number("1234"), Match(0, 1)));
-    get_next_number(candidates, tries);
-    sieve(candidates, Answer(Number("0156"), Match(1, 1)));
-    get_next_number(candidates, tries);
-    sieve(candidates, Answer(Number("0178"), Match(0, 1)));
-    get_next_number(candidates, tries);
-    sieve(candidates, Answer(Number("2586"), Match(1, 2)));
-    get_next_number(candidates, tries);
+    while (! do_exit) {
+      printf("\nDefault number %s:\n", next.str(num_buf));
+
+      const char MAXLINE = 80;
+      char line[MAXLINE+1] = { '\0' };
+      int oxes = 0, cows = 0, next_num_num;
+
+      bool perform_sieve = false;
+
+      if (! fgets(line, MAXLINE, stdin)) {
+        do_exit = true;
+      } else if (sscanf(line, "? %d", &next_num_num) == 1) {
+        try {
+          next = Number(next_num_num);
+          calc_info<PrintableCalcInfo>(next, candidates);
+        } catch (BadNumberError) {
+          printf("Invalid number: digits is repeated\n");
+        }
+      } else if (strncmp(line, "cheat", 5) == 0) {
+        next = get_next_number(candidates, tries);
+      } else if (sscanf(line, "%d %dA%dB", &next_num_num, &oxes, &cows) == 3) {
+        try {
+          next = Number(next_num_num);
+          calc_info<PrintableCalcInfo>(next, candidates);
+          perform_sieve = true;
+        } catch (BadNumberError) {
+          printf("Invalid number: digits is repeated\n");
+        }
+      } else if (sscanf(line, "%dA%dB", &oxes, &cows) == 2) {
+        perform_sieve = true;
+      } else if (strncmp(line, "reset", 5) == 0) {
+        candidates = Number::all_numbers();
+        next = Number();
+      } else if (strncmp(line, "exit", 4) == 0) {
+        do_exit = true;
+      } else {
+        puts(
+          "Print command:\n"
+          "  ? number - query stats for number\n"
+          "  cheat - find better number\n"
+          "  number xAyB - for the number x bulls and y cows\n"
+          "  xAyB - for default number x bulls and y cows\n"
+          "  reset - reset game\n"
+          "  exit - exit\n"
+        );
+      }
+
+      if (perform_sieve) {
+        Numbers backup = candidates;
+        sieve(candidates, Answer(next, Match(oxes, cows)));
+        switch (candidates.size()) {
+          case 0:
+            printf("WARNING: empty candidates list, unroll sieve\n");
+            candidates.swap(backup);
+            break;
+
+          case 1:
+            printf("Only one number");
+            next = candidates[0];
+            break;
+
+          default:
+            /* ничего не делаем */;
+            break;
+        }
+        perform_sieve = false;
+      }
+    }
   } catch (BadNumberError) {
     printf("uncatched BadNumberError\n");
   } catch (BadIndexError) {
